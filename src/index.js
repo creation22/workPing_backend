@@ -12,7 +12,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json()); // to parse JSON bodies
-
+app.get("/get-token", (req, res) => {
+  res.json({ token: process.env.TELEGRAM_TOKEN });
+});
 app.use("/api/settings", settingsRoutes);
 app.use("/api/stats", statsRoutes);
 const PORT = process.env.PORT || 8000;

@@ -3,7 +3,7 @@ import Setting from "../models/setting.js";
 
 const router = express.Router();
 
-// Helper to get today's date at midnight
+// Helper: Get today's date at midnight
 const getToday = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -15,8 +15,12 @@ router.post("/", async (req, res) => {
   const { userId, mode, timestamp } = req.body;
 
   try {
-    const setting = await Setting.findOne({ userId });
-    if (!setting) return res.status(404).json({ error: "User not found" });
+    // Find existing user or create a new one
+    let setting = await Setting.findOne({ userId });
+    if (!setting) {
+      setting = new Setting({ userId });
+      await setting.save();
+    }
 
     const today = getToday();
 
@@ -36,13 +40,11 @@ router.post("/", async (req, res) => {
 
       if (mode === "on") {
         workStat.workOnCount += 1;
-        // Mark when work started
         setting.lastModeChange = now;
       }
 
       if (mode === "off") {
         workStat.workOffCount += 1;
-        // Calculate duration of work session in hours
         if (setting.lastModeChange) {
           const durationMs = now - new Date(setting.lastModeChange);
           const durationHrs = durationMs / (1000 * 60 * 60); // convert ms to hours
@@ -51,7 +53,6 @@ router.post("/", async (req, res) => {
         }
       }
 
-      // Update current mode
       setting.currentMode = mode;
       await setting.save();
     }
@@ -68,8 +69,12 @@ router.get("/:userId/today", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const setting = await Setting.findOne({ userId });
-    if (!setting) return res.status(404).json({ error: "User not found" });
+    let setting = await Setting.findOne({ userId });
+    if (!setting) {
+      // Create a new user if not found
+      setting = new Setting({ userId });
+      await setting.save();
+    }
 
     const today = getToday();
     const workStat = setting.workStats.find(
